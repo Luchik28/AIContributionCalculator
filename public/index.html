@@ -1,0 +1,400 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Contribution Calculator</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        background: white;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        max-width: 800px;
+        width: 100%;
+        min-height: 500px;
+        padding: 40px;
+        position: relative;
+      }
+      .step { display: none; }
+      .step.active { display: block; animation: fadeIn 0.3s; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      
+      h1 { color: #333; margin-bottom: 10px; font-size: 28px; }
+      .subtitle { color: #666; margin-bottom: 30px; font-size: 16px; }
+      
+      label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+      input[type="text"], textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.2s;
+      }
+      input[type="text"]:focus, textarea:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      textarea { resize: vertical; min-height: 150px; font-family: inherit; }
+      
+      .button-group { margin-top: 30px; display: flex; gap: 10px; }
+      button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: #667eea;
+        color: white;
+        flex: 1;
+      }
+      .btn-primary:hover { background: #5568d3; transform: translateY(-1px); }
+      .btn-secondary {
+        background: #e0e0e0;
+        color: #333;
+      }
+      .btn-secondary:hover { background: #d0d0d0; }
+      
+      .progress-bar {
+        height: 4px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        margin-bottom: 30px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transition: width 0.3s;
+      }
+      
+      .profile-list { margin-top: 20px; }
+      .profile-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        background: #f9f9f9;
+        position: relative;
+        padding-bottom: 35px;
+      }
+      .profile-remove {
+        position: absolute;
+        bottom: 10px;
+        right: 15px;
+        background: none;
+        color: #999;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 0;
+        transition: color 0.2s;
+        text-decoration: underline;
+      }
+      .profile-remove:hover {
+        color: #666;
+      }
+      .profile-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 15px;
+        background: #667eea;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 20px;
+        flex-shrink: 0;
+        padding: 8px;
+      }
+      .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .profile-info { flex: 1; }
+      .profile-platform { font-weight: 600; color: #333; margin-bottom: 4px; }
+      .profile-url { color: #666; font-size: 14px; word-break: break-all; }
+      .profile-stats { color: #667eea; font-size: 14px; margin-top: 4px; }
+      
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      
+      .results-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      .results-summary h2 { margin-bottom: 20px; font-size: 24px; }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .stat-box {
+        background: rgba(255,255,255,0.2);
+        padding: 20px;
+        border-radius: 10px;
+      }
+      .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+      .stat-label { font-size: 14px; opacity: 0.9; }
+      
+      .platform-breakdown { margin-top: 30px; }
+      .platform-card {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        border-left: 4px solid #667eea;
+      }
+      .platform-card h3 { margin-bottom: 10px; color: #333; }
+      .platform-card .stat { color: #666; margin-bottom: 5px; }
+      
+      .info-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+      }
+      .info-section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 20px;
+      }
+      .info-section p {
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 12px;
+      }
+      .info-section ul {
+        margin: 15px 0;
+        padding-left: 25px;
+      }
+      .info-section li {
+        color: #555;
+        margin-bottom: 8px;
+        line-height: 1.6;
+      }
+      .citation {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+        border-left: 3px solid #667eea;
+      }
+      .citation strong {
+        color: #667eea;
+        display: block;
+        margin-bottom: 8px;
+      }
+      .citation p {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 8px;
+      }
+      .citation a {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .citation a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Progress Bar -->
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <!-- Step 1: Enter Name -->
+      <div class="step active" id="step1">
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="font-size: 48px; margin-bottom: 10px;">🤖</div>
+          <h1 style="font-size: 32px; margin-bottom: 15px;">AI Contribution Calculator</h1>
+          <p style="color: #666; font-size: 16px; line-height: 1.6; max-width: 600px; margin: 0 auto 20px;">
+            Every post, comment, and tweet you've ever made has likely been used to train AI models. Companies like OpenAI, Google, and Meta have scraped billions of social media posts to build their AI systems—without compensating the creators.
+          </p>
+          <p style="color: #667eea; font-weight: 500; font-size: 16px;">
+            Let's calculate how much your online content is actually worth.
+          </p>
+        </div>
+        
+        <div style="border-top: 2px solid #e0e0e0; padding-top: 30px;">
+          <h2 style="font-size: 24px; margin-bottom: 10px;">What's your name?</h2>
+          <p class="subtitle">We'll search for your public profiles to estimate your AI training contribution</p>
+          <label>Your Name</label>
+          <input type="text" id="userName" placeholder="Enter your full name" autofocus />
+          <div class="button-group">
+            <button class="btn-primary" onclick="searchProfiles()">Find My Profiles →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Review Profiles -->
+      <div class="step" id="step3">
+        <h1>Your Social Media Profiles</h1>
+        <p class="subtitle">Review and add any social media profiles we may have missed</p>
+        <div id="profileList" class="profile-list"></div>
+        <div style="margin-top: 20px;">
+          <label>Add any social media profiles we missed</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" id="addProfileUrl" placeholder="https://twitter.com/username" style="flex: 1;" />
+            <button class="btn-primary" onclick="addProfile()" style="flex: 0 0 auto; padding: 12px 20px;">Add</button>
+          </div>
+          <p style="font-size: 12px; color: #666; margin-top: 5px;">For X/Twitter accounts, you'll need to manually enter post counts</p>
+        </div>
+        <div class="button-group">
+          <button class="btn-secondary" onclick="goToStep(1)">← Back</button>
+          <button class="btn-primary" onclick="analyzeProfiles()">Calculate My Value →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Results -->
+      <div class="step" id="step4">
+        <h1>Your AI Contribution</h1>
+        <div class="results-summary">
+          <h2>Total Estimated Value</h2>
+          <div class="stat-value" id="totalValue">$0.00</div>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <div class="stat-value" id="totalPosts">0</div>
+              <div class="stat-label">Total Posts</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="totalWords">0</div>
+              <div class="stat-label">Total Words</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="platformCount">0</div>
+              <div class="stat-label">Platforms</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="platform-breakdown" id="platformBreakdown"></div>
+        
+        <div class="button-group">
+          <button class="btn-secondary" onclick="goToStep(5)" style="flex: 1;">Learn More About AI Training Data →</button>
+          <button class="btn-primary" onclick="location.reload()" style="flex: 0 0 auto;">Start Over</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Learn More -->
+      <div class="step" id="step5">
+        <h1>How AI Companies Use Your Data</h1>
+        <p class="subtitle">Understanding the value of social media data in AI training</p>
+        
+        <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
+          
+          <div class="info-section">
+            <h3>💰 The Business of AI Training Data</h3>
+            <p>Large language models like ChatGPT, Claude, and Gemini require massive amounts of text data to learn language patterns. Social media platforms contain billions of posts, comments, and conversations that represent real human communication—making them extremely valuable for AI training.</p>
+            <p><strong>Key facts:</strong></p>
+            <ul>
+              <li>OpenAI's GPT-3 was trained on ~45TB of text data, including social media posts</li>
+              <li>The AI training data market is projected to reach $5.3 billion by 2030</li>
+              <li>Reddit's 2024 deal with Google for AI training data: <strong>$60 million/year</strong></li>
+            </ul>
+          </div>
+
+          <div class="info-section">
+            <h3>📰 What the Media Says</h3>
+            
+            <div class="citation">
+              <strong>The Verge (2024):</strong> "Reddit signs $60M deal with Google to train AI models"
+              <p>"Reddit's content is particularly valuable for training AI because it contains authentic human conversations across thousands of topics. The deal gives Google access to Reddit's Data API to improve its AI models."</p>
+              <a href="https://www.theverge.com/2024/2/16/24075670/reddit-google-ai-training-data" target="_blank">Read article →</a>
+            </div>
+
+            <div class="citation">
+              <strong>New York Times (2023):</strong> "OpenAI Used Kenyan Workers Making $2/Hour to Filter Toxic Content"
+              <p>"The AI industry's appetite for data has created a booming market. Companies are scraping public websites, licensing datasets, and hiring workers to label and clean data at scale."</p>
+              <a href="https://time.com/6247678/openai-chatgpt-kenya-workers/" target="_blank">Read article →</a>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3>🔢 How We Calculate Value</h3>
+            <p><strong>Our estimate: $0.0001 per word (~$100 per million words)</strong></p>
+            <p>This figure is derived from several industry data points:</p>
+            <ul>
+              <li><strong>Reddit-Google deal:</strong> $60M/year for ~2 billion posts = ~$0.00003 per post (assuming 100 words/post = $0.0003/word)</li>
+              <li><strong>Common Crawl & web scraping costs:</strong> Industry estimates put cleaned, labeled text data at $50-200 per million words</li>
+              <li><strong>Data labeling marketplaces:</strong> Companies like Scale AI and Labelbox charge $0.01-0.10 per labeled example</li>
+              <li><strong>Academic research:</strong> Studies suggest training data contributes 15-30% of an AI model's total development cost</li>
+            </ul>
+            <p><em>Note: This is a rough estimate. Actual value varies based on data quality, domain specificity, recency, and licensing terms. Your personal social media data in aggregate could be worth more or less depending on these factors.</em></p>
+          </div>
+
+          <div class="info-section">
+            <h3>🤔 Why This Matters</h3>
+            <p>As individuals, we create massive amounts of valuable data through our online activity. However:</p>
+            <ul>
+              <li>Most social media terms of service grant platforms broad rights to use your content</li>
+              <li>Platforms profit from selling or licensing this data to AI companies</li>
+              <li>Individual creators typically receive no compensation</li>
+              <li>New regulations (like the EU AI Act) are starting to address data rights and attribution</li>
+            </ul>
+            <p><strong>The debate continues:</strong> Should individuals be compensated when their data is used for AI training? Organizations like the Data Dignity movement argue yes, while tech companies argue public data is fair game.</p>
+          </div>
+
+        </div>
+        
+        <div class="button-group">
+          <button class="btn-secondary" onclick="goToStep(4)">← Back to Results</button>
+          <button class="btn-primary" onclick="location.reload()">Start Over</button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="step" id="loading">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Finding profiles...</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
