@@ -2,12 +2,41 @@ const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Counter file path
+const COUNTER_FILE = path.join(__dirname, 'usage-counter.json');
+
+// Load counter from file
+function loadCounter() {
+  try {
+    if (fs.existsSync(COUNTER_FILE)) {
+      const data = fs.readFileSync(COUNTER_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Error loading counter:', err);
+  }
+  return { count: 0 };
+}
+
+// Save counter to file
+function saveCounter(counter) {
+  try {
+    fs.writeFileSync(COUNTER_FILE, JSON.stringify(counter, null, 2));
+  } catch (err) {
+    console.error('Error saving counter:', err);
+  }
+}
+
+// Initialize counter
+let usageCounter = loadCounter();
 
 // API tokens from environment
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -699,6 +728,18 @@ app.post('/search-profiles', async (req, res) => {
   }
 
   return res.json({ name, results, byPlatform, totals: { totalWords, totalPosts } });
+});
+
+// GET /usage-count - Get current usage count
+app.get('/usage-count', (req, res) => {
+  res.json({ count: usageCounter.count });
+});
+
+// POST /increment-usage - Increment usage counter
+app.post('/increment-usage', (req, res) => {
+  usageCounter.count++;
+  saveCounter(usageCounter);
+  res.json({ count: usageCounter.count });
 });
 
 app.listen(PORT, () => console.log(`AI Contribution Calculator server listening on http://localhost:${PORT}`));

@@ -446,6 +446,14 @@ async function analyzeProfiles() {
   };
   
   renderResults();
+  
+  // Increment usage counter
+  try {
+    await fetch('/increment-usage', { method: 'POST' });
+  } catch (err) {
+    console.error('Error incrementing usage counter:', err);
+  }
+  
   goToStep(4);
 }
 
@@ -513,4 +521,20 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  
+  // Load usage counter on page load
+  loadUsageCounter();
 });
+
+// Function to load and display usage counter
+function loadUsageCounter() {
+  fetch('/usage-count')
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById('usageCounterStep1').textContent = data.count.toLocaleString();
+    })
+    .catch(err => {
+      console.error('Error fetching usage counter:', err);
+      document.getElementById('usageCounterStep1').textContent = 'many';
+    });
+}
