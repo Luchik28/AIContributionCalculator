@@ -10,33 +10,65 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Counter file path
+// Try to import Vercel KV (only available in production on Vercel)
+let kv = null;
+try {
+  kv = require('@vercel/kv').kv;
+} catch (err) {
+  console.log('Vercel KV not available, using local file storage for counter');
+}
+
+// Counter storage - works locally and on Vercel
 const COUNTER_FILE = path.join(__dirname, 'usage-counter.json');
 
-// Load counter from file
-function loadCounter() {
-  try {
-    if (fs.existsSync(COUNTER_FILE)) {
-      const data = fs.readFileSync(COUNTER_FILE, 'utf8');
-      return JSON.parse(data);
+async function getCounter() {
+  if (kv && process.env.KV_REST_API_URL) {
+    // Use Vercel KV in production
+    try {
+      const count = await kv.get('usage_count');
+      return count || 0;
+    } catch (err) {
+      console.error('Error reading from KV:', err);
+      return 0;
     }
-  } catch (err) {
-    console.error('Error loading counter:', err);
+  } else {
+    // Use local file storage in development
+    try {
+      if (fs.existsSync(COUNTER_FILE)) {
+        const data = fs.readFileSync(COUNTER_FILE, 'utf8');
+        const parsed = JSON.parse(data);
+        return parsed.count || 0;
+      }
+    } catch (err) {
+      console.error('Error loading counter:', err);
+    }
+    return 0;
   }
-  return { count: 0 };
 }
 
-// Save counter to file
-function saveCounter(counter) {
-  try {
-    fs.writeFileSync(COUNTER_FILE, JSON.stringify(counter, null, 2));
-  } catch (err) {
-    console.error('Error saving counter:', err);
+async function incrementCounter() {
+  if (kv && process.env.KV_REST_API_URL) {
+    // Use Vercel KV in production
+    try {
+      const newCount = await kv.incr('usage_count');
+      return newCount;
+    } catch (err) {
+      console.error('Error incrementing KV counter:', err);
+      return 0;
+    }
+  } else {
+    // Use local file storage in development
+    try {
+      let count = await getCounter();
+      count++;
+      fs.writeFileSync(COUNTER_FILE, JSON.stringify({ count }, null, 2));
+      return count;
+    } catch (err) {
+      console.error('Error saving counter:', err);
+      return 0;
+    }
   }
 }
-
-// Initialize counter
-let usageCounter = loadCounter();
 
 // API tokens from environment
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -731,15 +763,15 @@ app.post('/search-profiles', async (req, res) => {
 });
 
 // GET /usage-count - Get current usage count
-app.get('/usage-count', (req, res) => {
-  res.json({ count: usageCounter.count });
+app.get('/usage-count', async (req, res) => {
+  const count = await getCounter();
+  res.json({ count });
 });
 
 // POST /increment-usage - Increment usage counter
-app.post('/increment-usage', (req, res) => {
-  usageCounter.count++;
-  saveCounter(usageCounter);
-  res.json({ count: usageCounter.count });
+app.post('/increment-usage', async (req, res) => {
+  const count = await incrementCounter();
+  res.json({ count });
 });
 
 app.listen(PORT, () => console.log(`AI Contribution Calculator server listening on http://localhost:${PORT}`));
