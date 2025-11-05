@@ -24,21 +24,32 @@
    - Import your GitHub repository
    - Click "Deploy"
 
-3. **Set Up Vercel KV Database** (THIS IS CRITICAL!)
+3. **CRITICAL: Set Up Vercel KV Database** (redis-pink-village)
    - Go to your project → "Storage" tab
-   - Click "Create Database" → Choose "KV"
-   - Name it (e.g., "usage-counter")
+   - If "redis-pink-village" is already there and shows "Connected", you're good!
+   - If not: Click "Create Database" → Choose "KV"
+   - Name it: `redis-pink-village`
    - Click "Create"
    - Vercel automatically connects it to your project
 
 4. **Done!** Your counter will now persist across all deployments
 
-### Optional: Add API Keys
+### Optional: Add API Keys for Better Data
 
-If you want GitHub/Reddit data:
-- Go to Settings → Environment Variables
-- Add `GITHUB_TOKEN`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`
-- Redeploy
+**Recommended API Keys:**
+
+1. **GITHUB_TOKEN** (Free, highly recommended)
+   - Go to: https://github.com/settings/tokens
+   - Generate token (classic) with `public_repo` and `read:user` scopes
+   - In Vercel: Settings → Environment Variables
+   - Add: `GITHUB_TOKEN` = `ghp_your_token`
+
+2. **REDDIT_CLIENT_ID & REDDIT_CLIENT_SECRET** (Free, optional)
+   - Go to: https://www.reddit.com/prefs/apps
+   - Create app (type: script)
+   - In Vercel: Add both variables
+
+After adding variables, click "Redeploy" in Vercel dashboard.
 
 ## How It Works
 

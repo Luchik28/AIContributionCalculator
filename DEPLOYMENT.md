@@ -42,7 +42,7 @@ vercel
 3. Click on the "Storage" tab
 4. Click "Create Database"
 5. Choose "KV (Redis)"
-6. Name it something like "usage-counter"
+6. Name it: **redis-pink-village** (or it may already be created)
 7. Select a region (pick one close to your users)
 8. Click "Create"
 
@@ -53,14 +53,66 @@ vercel
 
 ## Step 4: Add Environment Variables (Optional)
 
-If you want to use GitHub/Reddit APIs:
+If you want to use GitHub/Reddit APIs for accurate data:
+
+### Required API Keys:
+
+#### 1. GITHUB_TOKEN (Highly Recommended - Free)
+**What it does:** Gets accurate commit, issue, and PR data from GitHub profiles
+
+**How to get it:**
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Give it a name like "AI Contribution Calculator"
+4. Select scopes: 
+   - ✅ `public_repo`
+   - ✅ `read:user`
+5. Click "Generate token"
+6. Copy the token (starts with `ghp_`)
+
+**Add to Vercel:**
+- Variable name: `GITHUB_TOKEN`
+- Value: `ghp_your_token_here`
+
+---
+
+#### 2. REDDIT_CLIENT_ID & REDDIT_CLIENT_SECRET (Optional - Free)
+**What it does:** Gets accurate post and comment data from Reddit profiles
+
+**How to get it:**
+1. Go to https://www.reddit.com/prefs/apps
+2. Click "Create App" or "Create Another App"
+3. Fill in:
+   - **name**: AI Contribution Calculator
+   - **type**: Select "script"
+   - **description**: Calculates AI training data value
+   - **redirect uri**: `http://localhost:3000` (required but not used)
+4. Click "Create app"
+5. Copy:
+   - **Client ID**: The string under "personal use script"
+   - **Secret**: The "secret" value
+
+**Add to Vercel:**
+- Variable name: `REDDIT_CLIENT_ID`
+- Value: Your client ID
+- Variable name: `REDDIT_CLIENT_SECRET`
+- Value: Your secret
+
+---
+
+### How to Add to Vercel:
 
 1. In your Vercel project dashboard, go to "Settings" → "Environment Variables"
-2. Add these variables:
-   - `GITHUB_TOKEN`: Your GitHub personal access token
-   - `REDDIT_CLIENT_ID`: Your Reddit app client ID
-   - `REDDIT_CLIENT_SECRET`: Your Reddit app secret
-3. Make sure to select "Production", "Preview", and "Development" for each
+2. Click "Add New"
+3. Add each variable:
+   - Key: Variable name (e.g., `GITHUB_TOKEN`)
+   - Value: Your token/key
+   - Environment: Select **Production**, **Preview**, and **Development**
+4. Click "Save"
+
+**Note:** If you don't add these API keys, the app still works but will:
+- Require manual post count entry for Twitter/X and Instagram
+- Have less accurate data for GitHub and Reddit
 
 ## Step 5: Redeploy (If You Added Environment Variables)
 
