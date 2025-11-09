@@ -12,8 +12,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Try to import Vercel KV (only available in production on Vercel)
 let kv = null;
+let kvAvailable = false;
 try {
   kv = require('@vercel/kv').kv;
+  // Check if required KV environment variables exist
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    kvAvailable = true;
+    console.log('Vercel KV available and configured');
+  } else {
+    console.log('Vercel KV package loaded but environment variables missing');
+  }
 } catch (err) {
   console.log('Vercel KV not available, using local file storage for counter');
 }
@@ -22,51 +30,53 @@ try {
 const COUNTER_FILE = path.join(__dirname, 'usage-counter.json');
 
 async function getCounter() {
-  if (kv && (process.env.KV_REST_API_URL || process.env.REDIS_URL)) {
+  if (kvAvailable) {
     // Use Vercel KV in production
     try {
       const count = await kv.get('usage_count');
       return count || 0;
     } catch (err) {
       console.error('Error reading from KV:', err);
-      return 0;
+      // Fall back to file storage
+      console.log('Falling back to file storage');
     }
-  } else {
-    // Use local file storage in development
-    try {
-      if (fs.existsSync(COUNTER_FILE)) {
-        const data = fs.readFileSync(COUNTER_FILE, 'utf8');
-        const parsed = JSON.parse(data);
-        return parsed.count || 0;
-      }
-    } catch (err) {
-      console.error('Error loading counter:', err);
-    }
-    return 0;
   }
+  
+  // Use local file storage in development or as fallback
+  try {
+    if (fs.existsSync(COUNTER_FILE)) {
+      const data = fs.readFileSync(COUNTER_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      return parsed.count || 0;
+    }
+  } catch (err) {
+    console.error('Error loading counter:', err);
+  }
+  return 0;
 }
 
 async function incrementCounter() {
-  if (kv && (process.env.KV_REST_API_URL || process.env.REDIS_URL)) {
+  if (kvAvailable) {
     // Use Vercel KV in production
     try {
       const newCount = await kv.incr('usage_count');
       return newCount;
     } catch (err) {
       console.error('Error incrementing KV counter:', err);
-      return 0;
+      // Fall back to file storage
+      console.log('Falling back to file storage');
     }
-  } else {
-    // Use local file storage in development
-    try {
-      let count = await getCounter();
-      count++;
-      fs.writeFileSync(COUNTER_FILE, JSON.stringify({ count }, null, 2));
-      return count;
-    } catch (err) {
-      console.error('Error saving counter:', err);
-      return 0;
-    }
+  }
+  
+  // Use local file storage in development or as fallback
+  try {
+    let count = await getCounter();
+    count++;
+    fs.writeFileSync(COUNTER_FILE, JSON.stringify({ count }, null, 2));
+    return count;
+  } catch (err) {
+    console.error('Error saving counter:', err);
+    return 0;
   }
 }
 
