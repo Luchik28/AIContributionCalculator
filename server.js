@@ -22,7 +22,7 @@ try {
 const COUNTER_FILE = path.join(__dirname, 'usage-counter.json');
 
 async function getCounter() {
-  if (kv && process.env.KV_REST_API_URL) {
+  if (kv && (process.env.KV_REST_API_URL || process.env.REDIS_URL)) {
     // Use Vercel KV in production
     try {
       const count = await kv.get('usage_count');
@@ -47,7 +47,7 @@ async function getCounter() {
 }
 
 async function incrementCounter() {
-  if (kv && process.env.KV_REST_API_URL) {
+  if (kv && (process.env.KV_REST_API_URL || process.env.REDIS_URL)) {
     // Use Vercel KV in production
     try {
       const newCount = await kv.incr('usage_count');
