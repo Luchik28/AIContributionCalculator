@@ -14,16 +14,23 @@ app.use(express.static(path.join(__dirname, 'public')));
 let kv = null;
 let kvAvailable = false;
 try {
-  kv = require('@vercel/kv').kv;
-  // Check if required KV environment variables exist
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  // The @vercel/kv package automatically uses environment variables
+  // It looks for KV_URL, KV_REST_API_URL, or individual KV_REST_API_* variables
+  const kvModule = require('@vercel/kv');
+  kv = kvModule.kv;
+  
+  // Check if any KV environment variable exists
+  if (process.env.KV_URL || process.env.REDIS_URL || process.env.KV_REST_API_URL) {
     kvAvailable = true;
-    console.log('Vercel KV available and configured');
+    const varUsed = process.env.KV_URL ? 'KV_URL' : 
+                    process.env.REDIS_URL ? 'REDIS_URL' : 
+                    'KV_REST_API_URL';
+    console.log('Vercel KV configured using:', varUsed);
   } else {
-    console.log('Vercel KV package loaded but environment variables missing');
+    console.log('No KV environment variables found');
   }
 } catch (err) {
-  console.log('Vercel KV not available, using local file storage for counter');
+  console.log('Vercel KV not available:', err.message);
 }
 
 // Counter storage - works locally and on Vercel
