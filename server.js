@@ -2,7 +2,6 @@ const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,81 +9,16 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Try to import Vercel KV (only available in production on Vercel)
-let kv = null;
-let kvAvailable = false;
-try {
-  // The @vercel/kv package automatically uses environment variables
-  // It looks for KV_URL, KV_REST_API_URL, or individual KV_REST_API_* variables
-  const kvModule = require('@vercel/kv');
-  kv = kvModule.kv;
-  
-  // Check if any KV environment variable exists
-  if (process.env.KV_URL || process.env.REDIS_URL || process.env.KV_REST_API_URL) {
-    kvAvailable = true;
-    const varUsed = process.env.KV_URL ? 'KV_URL' : 
-                    process.env.REDIS_URL ? 'REDIS_URL' : 
-                    'KV_REST_API_URL';
-    console.log('Vercel KV configured using:', varUsed);
-  } else {
-    console.log('No KV environment variables found');
-  }
-} catch (err) {
-  console.log('Vercel KV not available:', err.message);
-}
-
-// Counter storage - works locally and on Vercel
-const COUNTER_FILE = path.join(__dirname, 'usage-counter.json');
+// Simple in-memory counter (resets on redeploy, but simple and works)
+let usageCounter = 0;
 
 async function getCounter() {
-  if (kvAvailable) {
-    // Use Vercel KV in production
-    try {
-      const count = await kv.get('usage_count');
-      return count || 0;
-    } catch (err) {
-      console.error('Error reading from KV:', err);
-      // Fall back to file storage
-      console.log('Falling back to file storage');
-    }
-  }
-  
-  // Use local file storage in development or as fallback
-  try {
-    if (fs.existsSync(COUNTER_FILE)) {
-      const data = fs.readFileSync(COUNTER_FILE, 'utf8');
-      const parsed = JSON.parse(data);
-      return parsed.count || 0;
-    }
-  } catch (err) {
-    console.error('Error loading counter:', err);
-  }
-  return 0;
+  return usageCounter;
 }
 
 async function incrementCounter() {
-  if (kvAvailable) {
-    // Use Vercel KV in production
-    try {
-      const newCount = await kv.incr('usage_count');
-      return newCount;
-    } catch (err) {
-      console.error('Error incrementing KV counter:', err);
-      // Fall back to file storage
-      console.log('Falling back to file storage');
-    }
-  }
-  
-  // Use local file storage in development or as fallback
-  try {
-    let count = await getCounter();
-    count++;
-    fs.writeFileSync(COUNTER_FILE, JSON.stringify({ count }, null, 2));
-    return count;
-  } catch (err) {
-    console.error('Error saving counter:', err);
-    return 0;
-  }
+  usageCounter++;
+  return usageCounter;
 }
 
 // API tokens from environment
